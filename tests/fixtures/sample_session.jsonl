@@ -1,0 +1,6 @@
+{"type":"permission-mode","permissionMode":"default","sessionId":"test-session-001"}
+{"type":"user","message":{"role":"user","content":"hello"},"timestamp":"2026-03-15T10:00:00Z","sessionId":"test-session-001"}
+{"type":"assistant","message":{"role":"assistant","content":"hi","model":"claude-opus-4-6","usage":{"input_tokens":100,"cache_creation_input_tokens":500,"cache_read_input_tokens":200,"output_tokens":50}},"timestamp":"2026-03-15T10:01:00Z","sessionId":"test-session-001"}
+{"type":"user","message":{"role":"user","content":"help me"},"timestamp":"2026-03-15T10:05:00Z","sessionId":"test-session-001"}
+{"type":"assistant","message":{"role":"assistant","content":"sure","model":"claude-opus-4-6","usage":{"input_tokens":150,"cache_creation_input_tokens":0,"cache_read_input_tokens":600,"output_tokens":80}},"timestamp":"2026-03-15T10:06:00Z","sessionId":"test-session-001"}
+{"type":"system","subtype":"tool","timestamp":"2026-03-15T10:03:00Z","sessionId":"test-session-001"}

@@ -1,0 +1,6 @@
+[general]
+github_username = "testuser"
+backfill = false
+
+[[accounts]]
+path = "~/.claude"

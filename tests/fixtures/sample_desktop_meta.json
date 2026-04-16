@@ -1,0 +1,13 @@
+{
+  "sessionId": "local_abc123",
+  "cliSessionId": "desktop-session-001",
+  "cwd": "/Users/testuser/Projects/myapp",
+  "originCwd": "/Users/testuser/Projects/myapp",
+  "createdAt": 1709251200000,
+  "lastActivityAt": 1709258400000,
+  "model": "claude-sonnet-4-6",
+  "completedTurns": 25,
+  "isArchived": false,
+  "title": "Test session",
+  "permissionMode": "default"
+}
