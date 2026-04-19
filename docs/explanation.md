@@ -38,7 +38,7 @@ The activity grid on the SVG card shows 26 weeks of history. Without backfill, d
 
 When `backfill = true` (the default), cc-stats:
 
-1. Reads `claudeCodeFirstTokenDate` from the Claude config backup files. This is the date you first used Claude Code.
+1. Reads `claudeCodeFirstTokenDate` (legacy) or `firstStartTime` (current) from the Claude config backup files. This is the date you first used Claude Code. With multiple accounts, the earliest date across all accounts is used. If no backup has either key, cc-stats falls back to the earliest real session date.
 2. For every date between that first token date and today, if no session exists, it inserts a placeholder bucket with `sessions=1` and `backfilled=True`.
 
 The effect: the activity grid shows a filled-in history from your first use, rather than scattered dots. This is cosmetic -- the placeholder data is not included in the JSON output or in summary stats like `total_sessions` or `total_messages`. Only `active_days` is affected, since it counts all days including backfilled ones.

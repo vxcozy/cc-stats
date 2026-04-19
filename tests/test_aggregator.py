@@ -1,7 +1,13 @@
+import json
 from datetime import datetime
 from unittest.mock import patch
 
-from cc_stats.aggregator import DailyBucket, aggregate, compute_streaks
+from cc_stats.aggregator import (
+    DailyBucket,
+    aggregate,
+    compute_streaks,
+    get_first_token_date,
+)
 from cc_stats.parsers import SessionData
 
 
@@ -103,3 +109,52 @@ class TestAggregate:
         stats = aggregate(sessions, [], backfill=False)
         assert stats.top_projects[0][0] == "big"
         assert stats.top_projects[0][1] == 8000
+
+    @patch("cc_stats.aggregator.datetime")
+    def test_backfill_falls_back_to_earliest_session(self, mock_dt):
+        """When no first_token_date is supplied, backfill uses the earliest session."""
+        mock_dt.now.return_value = datetime(2026, 4, 5)
+        mock_dt.strptime = datetime.strptime
+
+        sessions = [
+            _session("s1", "2026-04-01"),
+            _session("s2", "2026-04-05"),
+        ]
+        stats = aggregate(sessions, [], backfill=True, first_token_date=None)
+
+        # Apr 1-5 inclusive
+        assert stats.active_days == 5
+
+
+class TestGetFirstTokenDate:
+    def _make_backup(self, claude_dir, suffix: str, content: dict) -> None:
+        backups = claude_dir / "backups"
+        backups.mkdir(parents=True, exist_ok=True)
+        (backups / f".claude.json.backup.{suffix}").write_text(json.dumps(content))
+
+    def test_reads_legacy_key(self, tmp_path):
+        self._make_backup(tmp_path, "100", {"claudeCodeFirstTokenDate": "2025-01-15T00:00:00Z"})
+        assert get_first_token_date([tmp_path]) == "2025-01-15"
+
+    def test_reads_current_firstStartTime_key(self, tmp_path):
+        """Newer Claude backups only include firstStartTime, not claudeCodeFirstTokenDate."""
+        self._make_backup(tmp_path, "100", {"firstStartTime": "2025-06-20T12:00:00Z"})
+        assert get_first_token_date([tmp_path]) == "2025-06-20"
+
+    def test_picks_earliest_across_accounts(self, tmp_path):
+        """With multiple accounts, the earliest first-token date wins."""
+        acct_a = tmp_path / "acct_a"
+        acct_b = tmp_path / "acct_b"
+        self._make_backup(acct_a, "100", {"firstStartTime": "2025-09-01T00:00:00Z"})
+        self._make_backup(acct_b, "100", {"firstStartTime": "2025-03-01T00:00:00Z"})
+        assert get_first_token_date([acct_a, acct_b]) == "2025-03-01"
+
+    def test_returns_none_when_no_key(self, tmp_path):
+        self._make_backup(tmp_path, "100", {"unrelated": "value"})
+        assert get_first_token_date([tmp_path]) is None
+
+    def test_falls_back_to_main_config(self, tmp_path):
+        (tmp_path / ".claude.json").write_text(
+            json.dumps({"firstStartTime": "2025-02-02T00:00:00Z"})
+        )
+        assert get_first_token_date([tmp_path]) == "2025-02-02"

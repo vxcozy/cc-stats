@@ -111,16 +111,18 @@ def aggregate(
             hours[hour] += count
         project_tokens[session.project] += session.input_tokens + session.output_tokens
 
-    # Backfill from first token date to today
+    # Backfill from first token date (or earliest session) to today
     all_days = set(daily.keys())
-    if backfill and first_token_date:
-        today = datetime.now().strftime("%Y-%m-%d")
-        cursor = first_token_date
-        while cursor <= today:
-            if cursor not in all_days:
-                all_days.add(cursor)
-                daily[cursor] = DailyBucket(sessions=1, backfilled=True)
-            cursor = (_parse_day(cursor) + timedelta(days=1)).strftime("%Y-%m-%d")
+    if backfill:
+        start = first_token_date or (min(all_days) if all_days else None)
+        if start:
+            today = datetime.now().strftime("%Y-%m-%d")
+            cursor = start
+            while cursor <= today:
+                if cursor not in all_days:
+                    all_days.add(cursor)
+                    daily[cursor] = DailyBucket(sessions=1, backfilled=True)
+                cursor = (_parse_day(cursor) + timedelta(days=1)).strftime("%Y-%m-%d")
 
     # Compute summary
     current_streak, longest_streak = compute_streaks(sorted(all_days))
@@ -183,26 +185,38 @@ def compute_streaks(sorted_days: list[str]) -> tuple[int, int]:
 
 
 def get_first_token_date(claude_dirs: list[Path]) -> str | None:
-    """Read claudeCodeFirstTokenDate from Claude config backups."""
-    for claude_dir in claude_dirs:
-        # Try backups first (most reliable), then main config
-        backup_pattern = str(claude_dir / "backups" / ".claude.json.backup.*")
-        candidates = sorted(glob.glob(backup_pattern))
-        if not candidates:
-            main_config = claude_dir / ".claude.json"
-            if main_config.is_file():
-                candidates = [str(main_config)]
+    """Return the earliest first-token date across all Claude config dirs.
 
-        for path in candidates[:1]:
+    Reads `claudeCodeFirstTokenDate` (legacy) or `firstStartTime` (current)
+    from the oldest backup file, falling back to the main config. When
+    multiple accounts are configured, the earliest date wins so backfill
+    covers the full aggregated history.
+    """
+    dates: list[str] = []
+    for claude_dir in claude_dirs:
+        # Oldest backup preserves the original first-token date.
+        backup_pattern = str(claude_dir / "backups" / ".claude.json.backup.*")
+        candidates: list[str] = sorted(glob.glob(backup_pattern))
+        main_config = claude_dir / ".claude.json"
+        if main_config.is_file():
+            candidates.append(str(main_config))
+
+        for path in candidates:
             try:
                 with open(path) as f:
                     data = json.load(f)
-                date_str = data.get("claudeCodeFirstTokenDate", "")
-                if date_str:
-                    return date_str[:10]
             except (json.JSONDecodeError, OSError):
                 continue
-    return None
+            date_str = (
+                data.get("claudeCodeFirstTokenDate")
+                or data.get("firstStartTime")
+                or ""
+            )
+            if date_str:
+                dates.append(date_str[:10])
+                break
+
+    return min(dates) if dates else None
 
 
 def _parse_day(day_str: str) -> datetime:
