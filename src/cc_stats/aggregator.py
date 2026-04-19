@@ -111,18 +111,16 @@ def aggregate(
             hours[hour] += count
         project_tokens[session.project] += session.input_tokens + session.output_tokens
 
-    # Backfill from first token date (or earliest session) to today
+    # Backfill from first token date to today
     all_days = set(daily.keys())
-    if backfill:
-        start = first_token_date or (min(all_days) if all_days else None)
-        if start:
-            today = datetime.now().strftime("%Y-%m-%d")
-            cursor = start
-            while cursor <= today:
-                if cursor not in all_days:
-                    all_days.add(cursor)
-                    daily[cursor] = DailyBucket(sessions=1, backfilled=True)
-                cursor = (_parse_day(cursor) + timedelta(days=1)).strftime("%Y-%m-%d")
+    if backfill and first_token_date:
+        today = datetime.now().strftime("%Y-%m-%d")
+        cursor = first_token_date
+        while cursor <= today:
+            if cursor not in all_days:
+                all_days.add(cursor)
+                daily[cursor] = DailyBucket(sessions=1, backfilled=True)
+            cursor = (_parse_day(cursor) + timedelta(days=1)).strftime("%Y-%m-%d")
 
     # Compute summary
     current_streak, longest_streak = compute_streaks(sorted(all_days))
@@ -185,13 +183,7 @@ def compute_streaks(sorted_days: list[str]) -> tuple[int, int]:
 
 
 def get_first_token_date(claude_dirs: list[Path]) -> str | None:
-    """Return the earliest first-token date across all Claude config dirs.
-
-    Reads `claudeCodeFirstTokenDate` (legacy) or `firstStartTime` (current)
-    from the oldest backup file, falling back to the main config. When
-    multiple accounts are configured, the earliest date wins so backfill
-    covers the full aggregated history.
-    """
+    """Return the earliest first-token date across all Claude config dirs."""
     dates: list[str] = []
     for claude_dir in claude_dirs:
         # Oldest backup preserves the original first-token date.

@@ -199,7 +199,7 @@ Desktop metadata has no token counts. When a session exists in both JSONL and de
 
 ### First token date
 
-Read from `<account_path>/backups/.claude.json.backup.*` or `<account_path>/.claude.json`. The `claudeCodeFirstTokenDate` field (legacy) or `firstStartTime` (current) is used as the start date for backfill. With multiple `[[accounts]]`, the earliest date across all accounts wins. If neither key is present in any account's config, backfill falls back to the earliest real session date.
+Read from `<account_path>/backups/.claude.json.backup.*` or `<account_path>/.claude.json`. The `claudeCodeFirstTokenDate` field (legacy) or `firstStartTime` (current) is used as the start date for backfill. With multiple `[[accounts]]`, the earliest date across all accounts wins.
 
 ---
 

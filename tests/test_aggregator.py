@@ -110,22 +110,6 @@ class TestAggregate:
         assert stats.top_projects[0][0] == "big"
         assert stats.top_projects[0][1] == 8000
 
-    @patch("cc_stats.aggregator.datetime")
-    def test_backfill_falls_back_to_earliest_session(self, mock_dt):
-        """When no first_token_date is supplied, backfill uses the earliest session."""
-        mock_dt.now.return_value = datetime(2026, 4, 5)
-        mock_dt.strptime = datetime.strptime
-
-        sessions = [
-            _session("s1", "2026-04-01"),
-            _session("s2", "2026-04-05"),
-        ]
-        stats = aggregate(sessions, [], backfill=True, first_token_date=None)
-
-        # Apr 1-5 inclusive
-        assert stats.active_days == 5
-
-
 class TestGetFirstTokenDate:
     def _make_backup(self, claude_dir, suffix: str, content: dict) -> None:
         backups = claude_dir / "backups"
